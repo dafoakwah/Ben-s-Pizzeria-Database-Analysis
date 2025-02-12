@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<!-- saved from url=(0033)http://127.0.0.1:5500/second.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ben's Pizzeria - Order &amp; Inventory Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+
+        h1,
+        h2,
+        h3 {
+            color: #333;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        pre {
+            background: #333;
+            color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+
+        img {
+            max-width: 100%;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Ben's Pizzeria - Order &amp; Inventory Management</h1>
+
+        <h2>Database Schema</h2>
+        <img src="./Ben&#39;s Pizzeria - Order &amp; Inventory Management_files/database_schema.png" alt="Database Schema">
+
+        <h2>Dashboard 1: Order Activity</h2>
+        <ul>
+            <li>Total Orders</li>
+            <li>Total Sales</li>
+            <li>Total Items</li>
+            <li>Average Order Value</li>
+            <li>Sales by Category</li>
+            <li>Top Selling Items</li>
+            <li>Orders by Hour</li>
+            <li>Sales by Hour</li>
+            <li>Orders by Address</li>
+            <li>Orders by Delivery/Pickup</li>
+        </ul>
+
+        <h2>Dashboard 2: Inventory Management</h2>
+        <ul>
+            <li>Total Quantity by Ingredient</li>
+            <li>Total Cost of Ingredients</li>
+            <li>Calculated Cost of Pizza</li>
+            <li>Percentage Stock Remaining by Ingredient</li>
+        </ul>
+
+        <h2>Key SQL Queries</h2>
+        <h3>Order Details Query</h3>
+        <pre>SELECT  
+    o.order_id,
+    i.item_price, 
+    o.quantity, 
+    i.item_cat, 
+    i.item_name, 
+    o.created_at,
+    a.delivery_address1, 
+    a.delivery_address2, 
+    a.delivery_city, 
+    a.delivery_zipcode, 
+    o.delivery
+FROM 
+    orders o
+    LEFT JOIN item i ON o.item_id = i.item_id
+    LEFT JOIN address a ON o.add_id = a.add_id;
+        </pre>
+
+        <h3>Stock View (stock1)</h3>
+        <pre>CREATE VIEW stock1 AS
+SELECT 
+    s1.item_name, 
+    s1.ing_id, 
+    s1.ing_name, 
+    s1.ing_weight, 
+    s1.ing_price, 
+    s1.order_quantity,
+    s1.recipe_quantity, 
+    (s1.order_quantity * s1.recipe_quantity) AS ordered_weight,
+    (s1.ing_price / s1.ing_weight) AS unit_cost,
+    ((s1.order_quantity * s1.recipe_quantity) * (s1.ing_price / s1.ing_weight)) AS ingredient_cost
+FROM (SELECT 
+           o.item_id,
+           i.sku, 
+           i.item_name, 
+           r.ing_id, 
+           ing.ing_name, 
+           r.quantity AS recipe_quantity,
+           SUM(o.quantity) AS order_quantity, 
+           ing.ing_weight, 
+           ing.ing_price
+        FROM orders o
+        LEFT JOIN item i ON o.item_id = i.item_id
+        LEFT JOIN recipe r ON i.sku = r.recipe_id
+        LEFT JOIN ingredient ing ON ing.ing_id = r.ing_id
+        GROUP BY 
+            o.item_id,
+            i.sku, 
+            i.item_name, 
+            r.ing_id, 
+            r.quantity, 
+            ing.ing_name, 
+            ing.ing_weight, 
+            ing.ing_price) s1;
+        </pre>
+
+        <h3>Inventory Remaining Query</h3>
+        <pre>SELECT 
+    s2.ing_name,
+    s2.ordered_weight, 
+    ing.ing_weight, 
+    inv.quantity,
+    ing.ing_weight * inv.quantity AS total_inv_weight,
+    (ing.ing_weight * inv.quantity) - s2.ordered_weight AS remaining_weight
+FROM 
+    (SELECT 
+        ing_id,
+        ing_name, 
+        SUM(ordered_weight) AS ordered_weight
+    FROM stock1
+    GROUP BY 
+        ing_name,
+        ing_id) s2
+LEFT JOIN inventory inv ON inv.item_id = s2.ing_id
+LEFT JOIN ingredient ing ON ing.ing_id = s2.ing_id;
+        </pre>
+
+        <h3>Staff Cost Calculation</h3>
+        <pre>SELECT 
+    r.date, 
+    s.first_name,
+    s.last_name,
+    s.hourly_rate,
+    sh.start_time,
+    sh.end_time,
+    ((HOUR(TIMEDIFF(sh.end_time, sh.start_time)) * 60) +(MINUTE(TIMEDIFF(sh.end_time, sh.start_time)))) / 60 AS hours_in_shift,
+    (((HOUR(TIMEDIFF(sh.end_time, sh.start_time)) * 60) +(MINUTE(TIMEDIFF(sh.end_time, sh.start_time)))) / 60) * s.hourly_rate AS staff_cost
+FROM rota r
+LEFT JOIN staff s ON r.staff_id = s.staff_id
+LEFT JOIN shift sh ON r.shift_id = sh.shift_id;
+        </pre>
+    </div>
+<!-- Code injected by live-server -->
+<script>
+	// <![CDATA[  <-- For SVG support
+	if ('WebSocket' in window) {
+		(function () {
+			function refreshCSS() {
+				var sheets = [].slice.call(document.getElementsByTagName("link"));
+				var head = document.getElementsByTagName("head")[0];
+				for (var i = 0; i < sheets.length; ++i) {
+					var elem = sheets[i];
+					var parent = elem.parentElement || head;
+					parent.removeChild(elem);
+					var rel = elem.rel;
+					if (elem.href && typeof rel != "string" || rel.length == 0 || rel.toLowerCase() == "stylesheet") {
+						var url = elem.href.replace(/(&|\?)_cacheOverride=\d+/, '');
+						elem.href = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_cacheOverride=' + (new Date().valueOf());
+					}
+					parent.appendChild(elem);
+				}
+			}
+			var protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
+			var address = protocol + window.location.host + window.location.pathname + '/ws';
+			var socket = new WebSocket(address);
+			socket.onmessage = function (msg) {
+				if (msg.data == 'reload') window.location.reload();
+				else if (msg.data == 'refreshcss') refreshCSS();
+			};
+			if (sessionStorage && !sessionStorage.getItem('IsThisFirstTime_Log_From_LiveServer')) {
+				console.log('Live reload enabled.');
+				sessionStorage.setItem('IsThisFirstTime_Log_From_LiveServer', true);
+			}
+		})();
+	}
+	else {
+		console.error('Upgrade your browser. This Browser is NOT supported WebSocket for Live-Reloading.');
+	}
+	// ]]>
+</script>
+
+
+</body></html>
