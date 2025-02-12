@@ -47,7 +47,7 @@
     <div class="container">
         <h1>Ben's Pizzeria - Order &amp; Inventory Management</h1>
 
-        <h2 style="text-align: center;>Database Schema(QuickDBD)</h2>
+        <h2 style="text-align: center;">Database Schema(QuickDBD)</h2>
         <img src="database_schema.png" alt="Database Schema">
 
         <h2>Dashboard 1: Order Activity</h2>
